@@ -1,190 +1,218 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Guest Game - Ambil Foto</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        background: #f7f7fb;
-        padding: 30px;
-      }
-      h2 {
-        color: #333;
-      }
-      input {
-        padding: 10px;
-        width: 260px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        margin-bottom: 15px;
-      }
-      .frame {
-        position: relative;
-        display: inline-block;
-        width: 320px;
-        height: 240px;
-        border-radius: 8px;
-        border: 2px solid #ccc;
-        overflow: hidden;
-        background: #000;
-      }
-      /* 🔹 Flip horizontal kamera agar seperti mirror */
-      video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transform: scaleX(-1);
-      }
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .buttons {
-        margin-top: 10px;
-      }
-      button {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-        margin: 5px;
-      }
-      button:hover {
-        background-color: #0056b3;
-      }
-      #status {
-        margin-top: 15px;
-        font-weight: bold;
-      }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f7f7fb;
+            padding: 30px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        input {
+            padding: 10px;
+            width: 260px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+        }
+
+        .frame {
+            position: relative;
+            display: inline-block;
+            width: 320px;
+            height: 240px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* 🔹 Flip horizontal kamera agar seperti mirror */
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .buttons {
+            margin-top: 10px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+        }
     </style>
-  </head>
-  <body>
+</head>
+
+<body>
     <h2>📸 Ambil Foto Tamu</h2>
     <input type="text" id="nama" placeholder="Masukkan nama" />
     <br />
 
     <div class="frame">
-      <video id="video" autoplay></video>
-      <img id="preview" style="display: none" />
+        <video id="video" autoplay></video>
+        <img id="preview" style="display: none" />
     </div>
 
     <canvas id="canvas" width="320" height="240" style="display: none"></canvas>
 
     <div class="buttons">
-      <button id="capture">Ambil Foto</button>
-      <button id="retake" style="display: none; background-color: #6c757d">
-        Ulangi Foto
-      </button>
-      <button id="submit">Kirim ke Firebase</button>
+        <button id="capture">Ambil Foto</button>
+        <button id="retake" style="display: none; background-color: #6c757d">
+            Ulangi Foto
+        </button>
+        <button id="submit">Submit</button>
     </div>
 
     <p id="status"></p>
+    <!-- 🔹 Firebase Client SDK (Frontend) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+    <script src="/scripts/firebase-client.js"></script>
 
     <script>
-      const video = document.getElementById("video");
-      const canvas = document.getElementById("canvas");
-      const context = canvas.getContext("2d");
-      const preview = document.getElementById("preview");
-      const captureBtn = document.getElementById("capture");
-      const retakeBtn = document.getElementById("retake");
-      const submitBtn = document.getElementById("submit");
-      const statusText = document.getElementById("status");
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const context = canvas.getContext("2d");
+        const preview = document.getElementById("preview");
+        const captureBtn = document.getElementById("capture");
+        const retakeBtn = document.getElementById("retake");
+        const submitBtn = document.getElementById("submit");
+        const statusText = document.getElementById("status");
 
-      let fotoBase64 = "";
+        let fotoBase64 = "";
 
-      // 🔹 Minta izin kamera
-      async function startCamera() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          video.srcObject = stream;
-        } catch (err) {
-          alert("Gagal mengakses kamera: " + err.message);
-        }
-      }
-
-      startCamera();
-
-      // 🔹 Ambil gambar dari video (dengan mirror correction)
-      captureBtn.addEventListener("click", () => {
-        // Gambar di canvas dibalik juga agar hasilnya tidak mirror
-        context.translate(canvas.width, 0);
-        context.scale(-1, 1);
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        context.setTransform(1, 0, 0, 1, 0, 0); // reset transform
-
-        fotoBase64 = canvas.toDataURL("image/png");
-        preview.src = fotoBase64;
-        preview.style.display = "block";
-        video.style.display = "none";
-
-        captureBtn.style.display = "none";
-        retakeBtn.style.display = "inline-block";
-        statusText.textContent = "✅ Foto berhasil diambil!";
-        statusText.style.color = "green";
-      });
-
-      // 🔹 Ulangi foto
-      retakeBtn.addEventListener("click", () => {
-        fotoBase64 = "";
-        preview.style.display = "none";
-        video.style.display = "block";
-
-        captureBtn.style.display = "inline-block";
-        retakeBtn.style.display = "none";
-        statusText.textContent = "";
-      });
-
-      // 🔹 Kirim ke server
-      submitBtn.addEventListener("click", async () => {
-        const nama = document.getElementById("nama").value.trim();
-
-        if (!nama) {
-          alert("Nama wajib diisi!");
-          return;
-        }
-        if (!fotoBase64) {
-          alert("Silakan ambil foto terlebih dahulu!");
-          return;
+        // 🔹 Minta izin kamera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Gagal mengakses kamera: " + err.message);
+            }
         }
 
-        statusText.textContent = "⏳ Mengirim ke server...";
-        statusText.style.color = "orange";
+        startCamera();
 
-        try {
-          const res = await fetch("/api/users/save", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nama, foto: fotoBase64 }),
-          });
+        // 🔹 Ambil gambar dari video (dengan mirror correction)
+        captureBtn.addEventListener("click", () => {
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            context.setTransform(1, 0, 0, 1, 0, 0); // reset transform
 
-          const data = await res.json();
+            fotoBase64 = canvas.toDataURL("image/png");
+            preview.src = fotoBase64;
+            preview.style.display = "block";
+            video.style.display = "none";
 
-          if (data.success) {
-            statusText.textContent = "✅ Data berhasil dikirim ke Firebase!";
+            captureBtn.style.display = "none";
+            retakeBtn.style.display = "inline-block";
+            statusText.textContent = "✅ Foto berhasil diambil!";
             statusText.style.color = "green";
+        });
 
-            // reset form
-            document.getElementById("nama").value = "";
+        // 🔹 Ulangi foto
+        retakeBtn.addEventListener("click", () => {
             fotoBase64 = "";
             preview.style.display = "none";
             video.style.display = "block";
+
             captureBtn.style.display = "inline-block";
             retakeBtn.style.display = "none";
-          } else {
-            throw new Error(data.message || "Gagal menyimpan data");
-          }
-        } catch (error) {
-          statusText.textContent = "❌ Gagal mengirim data: " + error.message;
-          statusText.style.color = "red";
-        }
-      });
+            statusText.textContent = "";
+        });
+
+        // 🔹 Kirim ke server + auto assign slot
+        submitBtn.addEventListener("click", async () => {
+            const nama = document.getElementById("nama").value.trim();
+            if (!nama) return alert("Nama wajib diisi!");
+            if (!fotoBase64) return alert("Silakan ambil foto terlebih dahulu!");
+
+            statusText.textContent = "⏳ Mengirim ke server...";
+            statusText.style.color = "orange";
+
+            try {
+                const res = await fetch("/api/users/save", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nama, foto: fotoBase64 }),
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    statusText.textContent = "✅ Data berhasil dikirim ke Firebase!";
+                    statusText.style.color = "green";
+
+                    // 🔹 Cek slot kosong di Firebase (player1 / player2)
+                    const controlsRef = firebase.database().ref("controls");
+                    controlsRef.once("value").then(snapshot => {
+                        const controls = snapshot.val() || {};
+                        let assignedSlot = "player1";
+
+                        if (controls.player1 && controls.player2) {
+                            alert("⚠️ Kedua slot pemain sudah terisi!");
+                            return;
+                        } else if (controls.player1) {
+                            assignedSlot = "player2";
+                        }
+
+                        // simpan info user ke users/playerX
+                        firebase.database().ref(`users/${assignedSlot}`).set({
+                            nama,
+                            foto: data.fotoUrl, // URL dari backend
+                        });
+
+                        // redirect ke halaman kontrol
+                        setTimeout(() => {
+                            window.location.href = `/control.html?slot=${assignedSlot}`;
+                        }, 1500);
+                    });
+                } else {
+                    throw new Error(data.message || "Gagal menyimpan data");
+                }
+            } catch (error) {
+                statusText.textContent = "❌ Gagal mengirim data: " + error.message;
+                statusText.style.color = "red";
+            }
+        });
     </script>
-  </body>
+
+    
+</body>
+
 </html>

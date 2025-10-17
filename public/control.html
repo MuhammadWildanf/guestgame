@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no, orientation=landscape" />
+    <title>Guest Game - Kontrol Pemain</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: #f7f7fb;
+        color: #333;
+      }
+
+      /* 🔹 Paksa layout landscape */
+      body.landscape {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items: center;
+        transform: rotate(0deg);
+      }
+
+      body.portrait {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .rotate-warning {
+        display: none;
+        font-size: 18px;
+        color: #444;
+      }
+
+      .portrait .rotate-warning {
+        display: block;
+      }
+
+      .player-info {
+        text-align: center;
+      }
+
+      .player-info img {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 4px solid #007bff;
+        object-fit: cover;
+        margin-bottom: 10px;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .controls button {
+        width: 100px;
+        height: 100px;
+        font-size: 22px;
+        border-radius: 12px;
+        border: none;
+        background: #007bff;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .controls button:active {
+        background: #004999;
+        transform: scale(0.95);
+      }
+
+      #status {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="rotate-warning">
+      🔄 Silakan putar perangkat Anda ke mode <b>landscape</b> untuk bermain.
+    </div>
+
+    <div class="player-info">
+      <img id="playerPhoto" src="" alt="Foto Pemain" />
+      <h3 id="playerName">Memuat...</h3>
+      <p id="status">Terhubung ke Firebase...</p>
+    </div>
+
+    <div class="controls">
+      <div></div>
+      <button id="up">⬆️</button>
+      <div></div>
+      <button id="left">⬅️</button>
+      <button id="right">➡️</button>
+      <button id="down">⬇️</button>
+      <div></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+    <script src="/scripts/firebase-client.js"></script>
+
+    <script>
+      // 🔹 Atur orientasi tampilan otomatis
+      function handleOrientation() {
+        if (window.innerWidth > window.innerHeight) {
+          document.body.classList.add("landscape");
+          document.body.classList.remove("portrait");
+        } else {
+          document.body.classList.add("portrait");
+          document.body.classList.remove("landscape");
+        }
+      }
+
+      window.addEventListener("resize", handleOrientation);
+      window.addEventListener("orientationchange", handleOrientation);
+      window.addEventListener("load", handleOrientation);
+
+      // 🔹 Firebase logic
+      const params = new URLSearchParams(window.location.search);
+      const slot = params.get("slot");
+      const playerRef = firebase.database().ref("users/" + slot);
+      const controlRef = firebase.database().ref("controls/" + slot);
+
+      const statusText = document.getElementById("status");
+      const nameEl = document.getElementById("playerName");
+      const photoEl = document.getElementById("playerPhoto");
+
+      if (!slot) {
+        alert("Slot pemain tidak ditemukan!");
+        window.location.href = "/";
+      }
+
+      // 🔹 Ambil data pemain
+      playerRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          nameEl.textContent = data.nama || "Pemain";
+          photoEl.src = data.foto || "";
+        } else {
+          nameEl.textContent = "Pemain belum terdaftar";
+          photoEl.src = "";
+        }
+      });
+
+      // 🔹 Fungsi kirim kontrol ke Firebase
+      function sendControl(action) {
+        controlRef.set({
+          action,
+          timestamp: Date.now(),
+        });
+        statusText.textContent = `📡 Mengirim: ${action}`;
+      }
+
+      // 🔹 Tombol kontrol
+      document.getElementById("up").addEventListener("click", () => sendControl("up"));
+      document.getElementById("down").addEventListener("click", () => sendControl("down"));
+      document.getElementById("left").addEventListener("click", () => sendControl("left"));
+      document.getElementById("right").addEventListener("click", () => sendControl("right"));
+    </script>
+  </body>
+</html>
