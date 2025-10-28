@@ -3,49 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guest Game - Ambil Foto</title>
+  <title>Guest Game - Isi Data Pemain</title>
   <style>
-    body {
+    html, body {
+      height: 100%;
+      margin: 0;
       font-family: Arial, sans-serif;
-      text-align: center;
       background: #f7f7fb;
-      padding: 30px;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center; /* ⬅️ ini yang membuat form di tengah layar */
+    }
+
+    .form-container {
+      text-align: center;
+      background: white;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      width: 300px;
     }
 
     h2 {
+      margin-bottom: 25px;
       color: #333;
     }
 
     input {
       padding: 10px;
-      width: 260px;
+      width: 100%;
       border-radius: 6px;
       border: 1px solid #ccc;
       margin-bottom: 15px;
-    }
-
-    .frame {
-      position: relative;
-      display: inline-block;
-      width: 320px;
-      height: 240px;
-      border-radius: 8px;
-      border: 2px solid #ccc;
-      overflow: hidden;
-      background: #000;
-    }
-
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-    }
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      font-size: 14px;
+      box-sizing: border-box;
     }
 
     .buttons {
@@ -60,7 +52,7 @@
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
-      margin: 5px;
+      width: 100%;
     }
 
     button:hover {
@@ -70,37 +62,24 @@
     #status {
       margin-top: 15px;
       font-weight: bold;
+      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
-  <h2>📸 Ambil Foto Tamu</h2>
+  <div class="form-container">
+    <h2>🧾 Isi Data Pemain</h2>
 
-  <!-- ✅ Input aktif -->
-  <input type="text" id="nama" placeholder="Masukkan nama" /><br />
-  <input type="email" id="email" placeholder="Masukkan email" /><br />
+    <input type="text" id="nama" placeholder="Masukkan nama" />
+    <input type="email" id="email" placeholder="Masukkan email" />
 
-  <!-- ❌ Kamera dinonaktifkan sementara -->
-  <!--
-  <div class="frame">
-    <video id="video" autoplay></video>
-    <img id="preview" style="display: none" />
+    <div class="buttons">
+      <button id="submit">Submit</button>
+    </div>
+
+    <p id="status"></p>
   </div>
-
-  <canvas id="canvas" width="320" height="240" style="display: none"></canvas>
-
-  <div class="buttons">
-    <button id="capture">Ambil Foto</button>
-    <button id="retake" style="display: none; background-color: #6c757d">Ulangi Foto</button>
-  </div>
-  -->
-
-  <div class="buttons">
-    <button id="submit">Submit</button>
-  </div>
-
-  <p id="status"></p>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -111,54 +90,6 @@
     const submitBtn = document.getElementById("submit");
     const statusText = document.getElementById("status");
 
-    // 🔹 Kamera dinonaktifkan sementara
-    /*
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const context = canvas.getContext("2d");
-    const preview = document.getElementById("preview");
-    const captureBtn = document.getElementById("capture");
-    const retakeBtn = document.getElementById("retake");
-
-    let fotoBase64 = "";
-
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-      } catch (err) {
-        alert("Gagal mengakses kamera: " + err.message);
-      }
-    }
-    startCamera();
-
-    captureBtn.addEventListener("click", () => {
-      context.translate(canvas.width, 0);
-      context.scale(-1, 1);
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      context.setTransform(1, 0, 0, 1, 0, 0);
-
-      fotoBase64 = canvas.toDataURL("image/png");
-      preview.src = fotoBase64;
-      preview.style.display = "block";
-      video.style.display = "none";
-      captureBtn.style.display = "none";
-      retakeBtn.style.display = "inline-block";
-      statusText.textContent = "✅ Foto berhasil diambil!";
-      statusText.style.color = "green";
-    });
-
-    retakeBtn.addEventListener("click", () => {
-      fotoBase64 = "";
-      preview.style.display = "none";
-      video.style.display = "block";
-      captureBtn.style.display = "inline-block";
-      retakeBtn.style.display = "none";
-      statusText.textContent = "";
-    });
-    */
-
-    // 🔹 Kirim data (tanpa foto)
     submitBtn.addEventListener("click", async () => {
       const nama = document.getElementById("nama").value.trim();
       const email = document.getElementById("email").value.trim();
@@ -172,7 +103,7 @@
         const res = await fetch("/api/users/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nama, email })
+          body: JSON.stringify({ nama, email }),
         });
 
         const data = await res.json();
@@ -181,9 +112,9 @@
           statusText.textContent = "✅ Data berhasil dikirim!";
           statusText.style.color = "green";
 
-          // Redirect ke kontrol
+          // ✅ Redirect ke halaman kontrol dengan userId
           setTimeout(() => {
-            window.location.href = "/control.html";
+            window.location.href = `/control.html?user=${data.userId}`;
           }, 1000);
         } else {
           throw new Error(data.message || "Gagal menyimpan data");

@@ -3,24 +3,36 @@ const { db } = require("../config/firebase");
 
 exports.saveUser = async (req, res) => {
   try {
-   const { nama, email } = req.body;
-   if (!nama || !email) {
-      return res.status(400).json({ success: false, message: "Nama dan email wajib diisi." });
+    const { nama, email } = req.body;
+
+    // Validasi input
+    if (!nama || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Nama dan email wajib diisi.",
+      });
     }
 
-    // const fotoUrl = await uploadBase64Image(foto);
+    // 🔹 Buat data baru di Firebase
     const newRef = db.ref("users").push();
-
     await newRef.set({
       nama,
-       email,
-      // foto: fotoUrl,
+      email,
+      // foto: fotoUrl, // nanti bisa diaktifkan kembali
       timestamp: Date.now(),
     });
 
-    res.json({ success: true, message: "Data berhasil disimpan!"});
+    // 🔹 Kirim response dengan userId
+    return res.json({
+      success: true,
+      userId: newRef.key,
+      message: "Data berhasil disimpan!",
+    });
   } catch (error) {
     console.error("❌ Error saveUser:", error);
-    res.status(500).json({ message: "Terjadi kesalahan server" });
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan server",
+    });
   }
 };

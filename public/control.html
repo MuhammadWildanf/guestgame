@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guest Game - Kontrol Pemain</title>
   <style>
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       height: 100%;
@@ -16,19 +18,26 @@
       color: #333;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
     }
 
+    /* 🔹 Nama pemain di atas */
     .player-info {
       text-align: center;
-      margin-top: 30px;
+      padding: 20px 0;
+      flex: 0 0 auto;
     }
 
-    .player-email {
-      font-size: 14px;
-      color: #666;
-      margin-top: -5px;
+    .player-name {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    /* 🔹 Wrapper kontrol di tengah layar */
+    .controls-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .controls {
@@ -38,7 +47,6 @@
       gap: 10px;
       justify-content: center;
       align-items: center;
-      margin-bottom: 40px;
     }
 
     .controls button {
@@ -58,60 +66,68 @@
       background: #004999;
       transform: scale(0.95);
     }
-
-    #status {
-      font-weight: bold;
-      margin-bottom: 20px;
-      color: #555;
-    }
   </style>
 </head>
+
 <body>
+  <!-- 🔹 Nama di bagian atas -->
   <div class="player-info">
-    <h3 id="playerName">Pemain</h3>
-    <p class="player-email" id="playerEmail"></p>
+    <div id="playerName" class="player-name">Pemain</div>
   </div>
 
-  <div class="controls">
-    <div></div>
-    <button id="up">⬆️</button>
-    <div></div>
-    <button id="left">⬅️</button>
-    <div></div>
-    <button id="right">➡️</button>
-    <div></div>
-    <button id="down">⬇️</button>
-    <div></div>
+  <!-- 🔹 Kontrol di tengah layar -->
+  <div class="controls-wrapper">
+    <div class="controls">
+      <div></div>
+      <button id="up">⬆️</button>
+      <div></div>
+      <button id="left">⬅️</button>
+      <div></div>
+      <button id="right">➡️</button>
+      <div></div>
+      <button id="down">⬇️</button>
+      <div></div>
+    </div>
   </div>
 
-  <p id="status">Terhubung ke Firebase...</p>
-
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/scripts/firebase-client.js"></script>
 
   <script>
-    const dbRef = firebase.database().ref("users");
-    const controlRef = firebase.database().ref("controls");
-
-    const statusText = document.getElementById("status");
     const nameEl = document.getElementById("playerName");
-    const emailEl = document.getElementById("playerEmail");
 
-    // 🔹 Ambil user terakhir dari Firebase
-    dbRef.limitToLast(1).on("child_added", (snapshot) => {
+    // Ambil userId dari URL
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get("user");
+
+    if (!userId) {
+      alert("User tidak ditemukan!");
+      window.location.href = "/";
+    }
+
+    // Ambil nama user dari Firebase
+    const playerRef = firebase.database().ref("users/" + userId);
+    playerRef.on("value", (snapshot) => {
       const data = snapshot.val();
       if (data) {
         nameEl.textContent = data.nama || "Pemain";
-        emailEl.textContent = data.email || "";
       }
     });
 
+    // 🔹 Fungsi kirim kontrol (pakai update agar tidak overwrite penuh)
     function sendControl(action) {
-      controlRef.set({ action, timestamp: Date.now() });
-      statusText.textContent = `📡 Mengirim: ${action}`;
+      const controlRef = firebase.database().ref("controls/" + userId);
+      controlRef.update({
+        action,
+        timestamp: Date.now(),
+        random: Math.random().toString(36).substring(2, 8),
+        player: userId,
+      });
     }
 
+    // 🔹 Tombol kontrol
     document.getElementById("up").addEventListener("click", () => sendControl("up"));
     document.getElementById("down").addEventListener("click", () => sendControl("down"));
     document.getElementById("left").addEventListener("click", () => sendControl("left"));
